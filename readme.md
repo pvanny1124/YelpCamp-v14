@@ -1,9 +1,8 @@
 
-v13 YelpCamp
+v14 YelpCamp
 
 new features: 
 
--UI improvement to sign up/register forms
--UI improvement to navbar: login/sign up links now are active when we are in those respective pages
--add home button to navbar
--add responsive design so that we can view the app on mobile/tablets
+-added location field in the "add a new campground" form
+-added locaton field in the "edit" form
+-added google maps box to display this location on the map under info sections in the "show" page

@@ -2,8 +2,10 @@ var express     = require("express");
 var router      = express.Router();
 var Campground  = require("../models/campgrounds");
 var middleware  = require("../middleware"); //don't have to do "../middleware/index.js" because index.js is automatically looked for
+var geocoder    = require("geocoder"); //for google maps
 
-//INDEX 
+
+//INDEX route
 router.get("/", function(req, res){
         //get all campgrounds from DB
         Campground.find({}, function(err, allCampgrounds){
@@ -27,31 +29,46 @@ router.get("/new", middleware.isLoggedIn, function(req, res){
 
 //CREATE
 router.post("/", middleware.isLoggedIn, function(req, res){
+    
     //get data from form
     var name = req.body.name;
     var image = req.body.image;
     var price = req.body.price;
     var description = req.body.description;
     var author = {
-        id: req.user._id,
-        username: req.user.username
-    }
-    var newCampground = {name: name, price: price, image: image, description: description, author: author};
-    //create a new campground and save to DB
-    Campground.create(newCampground, function(err, newlyCreated){
-        if(err){
-            console.log(err);
-        } else {
-            //redirect back to campgrounds
-            console.log(newlyCreated);
-            res.redirect("/campgrounds");
-        }
+            id: req.user._id,
+            username: req.user.username
+        };
+    
+    geocoder.geocode(req.body.location, function (err, data) {
+        var lat = data.results[0].geometry.location.lat;
+        var lng = data.results[0].geometry.location.lng;
+        var location = data.results[0].formatted_address;
+     
+        //create the new campground object
+        var newCampground = {
+            name: name, 
+            price: price, 
+            image: image,  
+            location: location, 
+            lat: lat, 
+            lng: lng, 
+            description: description, 
+            author: author
+            
+        };
+    
+        //Create the campground object and save to DB
+        Campground.create(newCampground, function(err, newlyCreated){
+            if(err){
+                console.log(err);
+            } else {
+                //redirect back to campgrounds
+                console.log(newlyCreated);
+                res.redirect("/campgrounds");
+            }
+        });
     });
-    //push into campground array
-    //don't need following line anymore after DB addition
-    //campgrounds.push(newCampground);
-    //redirect back to campgrounds page
-    //res.redirect("/campgrounds"); //default is to redirect to a get request
 });
 
 //SHOW
@@ -78,19 +95,22 @@ router.get("/:id/edit", middleware.checkCampgroundOwnership, function(req, res){
 });
 
 //UPDATE CAMPGROUND ROUTE
-router.put("/:id", middleware.checkCampgroundOwnership, function(req, res){
-    //find and update the correct campground
-     //redirect to showpage
-    //could do the following, but this is annoying. use other method with campground[attribute] in form itself
-    //var data = {name: req.body.name, image: req.body.image, description: req.body.description};
-    Campground.findByIdAndUpdate(req.params.id, req.body.campground, function(err, updatedCampground){
+router.put("/:id", function(req, res){
+  geocoder.geocode(req.body.location, function (err, data) {
+    var lat = data.results[0].geometry.location.lat;
+    var lng = data.results[0].geometry.location.lng;
+    var location = data.results[0].formatted_address;
+    var newData = {name: req.body.campground.name, image: req.body.campground.image, description: req.body.campground.description, cost: req.body.campground.cost, location: location, lat: lat, lng: lng};
+    Campground.findByIdAndUpdate(req.params.id, {$set: newData}, function(err, campground){
         if(err){
-            res.redirect("/campgrounds");
-        } else{
-            res.redirect("/campgrounds/" + req.params.id);
+            req.flash("error", err.message);
+            res.redirect("back");
+        } else {
+            req.flash("success","Successfully Updated!");
+            res.redirect("/campgrounds/" + campground._id);
         }
     });
-   
+  });
 });
 
 //DESTROY CAMPGROUND ROUTE

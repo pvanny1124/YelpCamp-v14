@@ -7,7 +7,9 @@
                 <li class="list-group-item">Info1</li>
                 <li class="list-group-item">Info1</li>
             </div>
+            <div id="map"></div>
         </div>
+        
         <div class="col-md-9">
             <div class="thumbnail">
                 <img class="img-responsive" src="<%= campground.image %>">
@@ -53,4 +55,39 @@
             </div>
         </div>
     </div>
+    
+    <script>
+  function initMap() {
+    var lat = <%= campground.lat %>;
+    var lng = <%= campground.lng %>;
+    var center = {lat: lat, lng: lng };
+    var map = new google.maps.Map(document.getElementById('map'), {
+        zoom: 8,
+        center: center,
+        scrollwheel: false
+    });
+    var contentString = `
+      <strong><%= campground.name %><br />
+      <%= campground.location %></strong>
+      <p><%= campground.description %></p>
+    `;
+    
+    //infowindow displays content (text/images) in a pop up window above the map
+    var infoWindow = new google.maps.InfoWindow({
+      content: contentString
+    });
+    
+    //markers point to the position specified
+    var marker = new google.maps.Marker({
+        position: center,
+        map: map
+    });
+    
+    //markers need to listen for a click in order for an infowindow to pop up for more info
+    marker.addListener('click', function() {
+      infoWindow.open(map, marker);
+    });
+  }
+</script>
+<script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD_5LYuEMTzzJdyOKuYYRcLWSjpWq88jzM&callback=initMap"></script>
 <% include ../partials/footer %>
